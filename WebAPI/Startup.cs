@@ -45,7 +45,6 @@ namespace WebAPI
             services.AddScoped<IUnitOfWork, UnitOfWork>();
             RegisterServices(services);
             RegisterRepositories(services);
-
         }
 
         private void GetLocalSetting()
@@ -56,11 +55,6 @@ namespace WebAPI
             CacheExpirationMins = int.Parse(localSetting.GetSection("CacheExpirationMins").Value);
             BatchRecords = int.Parse(localSetting.GetSection("BatchRecords").Value);
         }
-
-        //public static string GetDefaultConnectionString()
-        //{
-        //    return Startup.ConnectionString;
-        //}
 
         private static void RegisterServices(IServiceCollection services)
         {
