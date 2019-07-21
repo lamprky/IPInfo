@@ -18,6 +18,7 @@ using Dapper;
 using System.Data;
 using System.Web.Mvc;
 using Microsoft.AspNetCore.Mvc;
+using IPInfo.Interfaces;
 
 namespace WebAPI.Services
 {
@@ -54,6 +55,7 @@ namespace WebAPI.Services
                     return null;
             }
         }
+
         public async Task<Guid> UpdateIPDetails(List<IPDetailsModel> details)
         {
             Guid batchId = new Guid();
@@ -66,7 +68,6 @@ namespace WebAPI.Services
                     batchId = await CreateBatchDetail(details.Count);
                 }
                 Task execution = RunBatch(batchId, details);
-
             }
             catch
             {
@@ -111,7 +112,7 @@ namespace WebAPI.Services
                     try
                     {
                         //find them already exists in db
-                        var detailsInDb = await GetExistingIPDetailRecords(detailsInProcess, connection, transaction);
+                        var detailsInDb = GetExistingIPDetailRecords(detailsInProcess, connection, transaction);
 
                         //update them
                         Task updateRecs = UpdateExistingIPDetailRecords(detailsInProcess, detailsInDb, connection, transaction);
@@ -143,7 +144,7 @@ namespace WebAPI.Services
             }
         }
 
-        private async Task<List<string>> GetExistingIPDetailRecords(List<IPDetailsModel> detailsInProcess, IDbConnection connection, IDbTransaction transaction)
+        private List<string> GetExistingIPDetailRecords(List<IPDetailsModel> detailsInProcess, IDbConnection connection, IDbTransaction transaction)
         {
             //var detailsInDb = await _ipDetailsRepository.Get(x => detailsInProcess.Select(y => y.IP).Contains(x.IP));
 
@@ -183,7 +184,11 @@ namespace WebAPI.Services
                             SET City = @City, Continent = @Continent, Country = @Country,
                                 Latitude = @Latitude, Longitude = @Longitude
                             WHERE IP = @IP";
-            Parallel.ForEach(detailsToUpdate, x => connection.ExecuteAsync(sql, x.ToDetailsDTO(), transaction));
+            Parallel.ForEach(detailsToUpdate, x =>
+            {
+                connection.ExecuteAsync(sql, x.ToDetailsDTO(), transaction);
+                UpdateCache(x.IP, x);
+            });
         }
 
         private async Task InsertNotExistingIPDetailRecords(List<IPDetailsModel> detailsInProcess, List<string> detailsInDb, IDbConnection connection, IDbTransaction transaction)
@@ -195,7 +200,11 @@ namespace WebAPI.Services
 
             string sql = @"INSERT INTO IPDetails (IP, City, Country, Continent, Latitude, Longitude)
                             VALUES (@IP, @City, @Country, @Continent, @Latitude, @Longitude)";
-            Parallel.ForEach(detailsToInsert, x => connection.ExecuteAsync(sql, x.ToDetailsDTO(), transaction));
+            Parallel.ForEach(detailsToInsert, x =>
+            {
+                connection.ExecuteAsync(sql, x.ToDetailsDTO(), transaction);
+                UpdateCache(x.IP, x);
+            });
         }
 
         private async Task UpdateBatchRecord(Guid batchId, int processedRecords, DateTime? endDate, IDbConnection connection, IDbTransaction transaction)
@@ -210,9 +219,15 @@ namespace WebAPI.Services
             string sql = @"UPDATE BatchDetails 
                             SET No_of_Updates_Processed = @No_of_Updates_Processed, EndTime = @EndTime
                             WHERE ID = @ID";
-            connection.ExecuteAsync(sql,
+            await connection.ExecuteAsync(sql,
                 new { No_of_Updates_Processed = processedRecords, EndTime = endDate, ID = batchId }, transaction);
         }
 
+        private void UpdateCache(string ip, IPDetails details)
+        {
+            var cacheEntryOptions = new MemoryCacheEntryOptions()
+                    .SetSlidingExpiration(TimeSpan.FromMinutes(cacheExpirationMins));
+            _cache.Set(ip, details, cacheEntryOptions);
+        }
     }
 }
