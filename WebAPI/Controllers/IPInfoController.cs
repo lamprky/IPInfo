@@ -38,5 +38,17 @@ namespace WebAPI.Controllers
         {
             return await _ipDetailsUpdateService.UpdateIPDetails(details);
         }
+
+        // GET api/ipinfo/job/A35DF5C4-BE1F-4184-A454-6FC4CB3CCCE1
+        [HttpGet("job/{id}")]
+        public async Task<IActionResult> GetJob(Guid id)
+        {
+            BatchDetailModel result = await _ipDetailsUpdateService.GetJobProgress(id);
+            if (result == null)
+                return NotFound("Job not found");
+            else
+                return Ok(result);
+
+        }
     }
 }

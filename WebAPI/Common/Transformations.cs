@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using IPInfo.Interfaces;
 using WebAPI.Models;
+using WebAPI.Models.Database;
 using WebAPI.Models.Service;
 
 namespace WebAPI.Common
@@ -43,6 +44,15 @@ namespace WebAPI.Common
         public static IPDetailsDTO ToDetailsDTO(this IPDetailsModel model)
         {
             return model.ToDetailsDTO(model.IP);
+        }
+
+        public static BatchDetailModel ToBatchDetailModel(this BatchDetailsDTO model)
+        {
+            return new BatchDetailModel {
+                Progress = model.No_of_Updates_Processed + "/" + model.No_of_Updates,
+                StartDate = model.StartTime,
+                EndDate = model.EndTime,
+            };
         }
     }
 }

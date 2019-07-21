@@ -9,5 +9,6 @@ namespace WebAPI.Services.Interfaces
     public interface IIPDetailsUpdateBatchService
     {
         Task<Guid> UpdateIPDetails(List<IPDetailsModel> details);
+        Task<BatchDetailModel> GetJobProgress(Guid batchId);
     }
 }

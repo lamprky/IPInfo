@@ -9,8 +9,12 @@ using WebAPI.Models.Database;
 
 namespace WebAPI.Data
 {
-    public class ApplicationDbContext : IdentityDbContext
+    public class ApplicationDbContext : DbContext
     {
+        public ApplicationDbContext() : base()
+        {
+        }
+
         public ApplicationDbContext(DbContextOptions options) : base(options)
         {
         }
