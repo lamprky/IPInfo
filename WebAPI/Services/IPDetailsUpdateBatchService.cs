@@ -99,33 +99,15 @@ namespace WebAPI.Services
             int loopsCounter = 0;
             using (SqlConnection connection = new SqlConnection(strConnString))
             {
-
                 while (loopsCounter < maxLoops)
                 {
                     await connection.OpenAsync();
-
-                    int recordsToTake = (loopsCounter + 1 == maxLoops) ? details.Count % batchRecords : batchRecords;
-                    var detailsInProcess = details.Skip(loopsCounter * batchRecords).Take(recordsToTake).ToList();
 
                     SqlTransaction transaction = connection.BeginTransaction();
 
                     try
                     {
-                        //find them already exists in db
-                        var detailsInDb = GetExistingIPDetailRecords(detailsInProcess, connection, transaction);
-
-                        //update them
-                        Task updateRecs = UpdateExistingIPDetailRecords(detailsInProcess, detailsInDb, connection, transaction);
-
-                        //for the rest do insert
-                        Task insertRecs = InsertNotExistingIPDetailRecords(detailsInProcess, detailsInDb, connection, transaction);
-
-                        //update batch record
-                        var processedRecords = (loopsCounter * batchRecords) + recordsToTake;
-                        DateTime? endDate = (loopsCounter + 1 == maxLoops) ? DateTime.Now : (DateTime?)null;
-                        Task updateBatchRec = UpdateBatchRecord(batchId, processedRecords, endDate, connection, transaction);
-
-                        await Task.WhenAll(new List<Task> { updateRecs, insertRecs, updateBatchRec });
+                        await ProcessRecords(batchId, details, maxLoops, loopsCounter, connection, transaction);
 
                         transaction.Commit();
 
@@ -144,70 +126,70 @@ namespace WebAPI.Services
             }
         }
 
-        private List<string> GetExistingIPDetailRecords(List<IPDetailsModel> detailsInProcess, IDbConnection connection, IDbTransaction transaction)
+        private async Task ProcessRecords(Guid batchId, List<IPDetailsModel> details, int maxLoops, int loopsCounter,
+            IDbConnection connection, IDbTransaction transaction)
+        {
+            int recordsToTake = (loopsCounter + 1 == maxLoops) ? details.Count % batchRecords : batchRecords;
+            var detailsInProcess = details.Skip(loopsCounter * batchRecords).Take(recordsToTake).ToList();
+
+            //find them already exists in db
+            var detailsInDb = GetExistingIPDetailRecords(detailsInProcess, connection, transaction);
+
+            //update them
+            Task updateRecs = UpdateExistingIPDetailRecords(detailsInProcess, detailsInDb, connection, transaction);
+
+            //for the rest do insert
+            Task insertRecs = InsertNotExistingIPDetailRecords(detailsInProcess, detailsInDb, connection, transaction);
+
+            //update batch record
+            var processedRecords = (loopsCounter * batchRecords) + recordsToTake;
+            DateTime? endDate = (loopsCounter + 1 == maxLoops) ? DateTime.Now : (DateTime?)null;
+            Task updateBatchRec = UpdateBatchRecord(batchId, processedRecords, endDate, connection, transaction);
+
+            await Task.WhenAll(new List<Task> { updateRecs, insertRecs, updateBatchRec });
+        }
+
+        private List<string> GetExistingIPDetailRecords(List<IPDetailsModel> detailsInProcess, 
+            IDbConnection connection, IDbTransaction transaction)
         {
             //var detailsInDb = await _ipDetailsRepository.Get(x => detailsInProcess.Select(y => y.IP).Contains(x.IP));
 
-            //List<string> detailsInDb = new List<string>();
-            //var parameters = new string[detailsInProcess.Count];
-            //var cmd = new SqlCommand();
-            //for (int i = 0; i < detailsInProcess.Count; i++)
-            //{
-            //    parameters[i] = string.Format("@IP{0}", i);
-            //    cmd.Parameters.AddWithValue(parameters[i], detailsInProcess[i].IP);
-            //}
-            //cmd.Connection = connection;
-            //cmd.Transaction = transaction;
-            //cmd.CommandText = string.Format("SELECT IP FROM IPDetails WHERE IP IN ({0})", string.Join(", ", parameters));
-
-            //using (SqlDataReader reader = cmd.ExecuteReader())
-            //{
-            //    while (reader.Read())
-            //    {
-            //        detailsInDb.Add(reader.GetString(0));
-            //    }
-            //}
-
-            string sql = "SELECT * FROM IPDetails WHERE IP IN @ips";
-            List<string> detailsInDb = connection.Query<IPDetailsDTO>(sql, new { ips = detailsInProcess.Select(x => x.IP).ToArray() }, transaction).ToList().Select(x => x.IP).ToList();
+            List<string> detailsInDb = _ipDetailsRepository.GetByIps(detailsInProcess.Select(x => x.IP).ToList(), connection, transaction).Select(x => x.IP).ToList();
             return detailsInDb;
         }
 
-        private async Task UpdateExistingIPDetailRecords(List<IPDetailsModel> detailsInProcess, List<string> detailsInDb, IDbConnection connection, IDbTransaction transaction)
+        private async Task UpdateExistingIPDetailRecords(List<IPDetailsModel> detailsInProcess, List<string> detailsInDb, 
+            IDbConnection connection, IDbTransaction transaction)
         {
             var detailsToUpdate = detailsInProcess.Where(x => detailsInDb.Contains(x.IP)).ToList();
             //Parallel.ForEach(detailsToUpdate, x => _ipDetailsRepository.Update(x.ToDetailsDTO()));
 
             await Task.Delay(5000);
 
-            string sql = @"UPDATE IPDetails 
-                            SET City = @City, Continent = @Continent, Country = @Country,
-                                Latitude = @Latitude, Longitude = @Longitude
-                            WHERE IP = @IP";
             Parallel.ForEach(detailsToUpdate, x =>
             {
-                connection.ExecuteAsync(sql, x.ToDetailsDTO(), transaction);
+                _ipDetailsRepository.UpdateDetail(x.ToDetailsDTO(), connection, transaction);
                 UpdateCache(x.IP, x);
             });
         }
 
-        private async Task InsertNotExistingIPDetailRecords(List<IPDetailsModel> detailsInProcess, List<string> detailsInDb, IDbConnection connection, IDbTransaction transaction)
+        private async Task InsertNotExistingIPDetailRecords(List<IPDetailsModel> detailsInProcess, List<string> detailsInDb, 
+            IDbConnection connection, IDbTransaction transaction)
         {
             var detailsToInsert = detailsInProcess.Where(x => !detailsInDb.Contains(x.IP)).ToList();
             //Parallel.ForEach(detailsToInsert, x => _ipDetailsRepository.Insert(x.ToDetailsDTO()));
 
             await Task.Delay(10000);
 
-            string sql = @"INSERT INTO IPDetails (IP, City, Country, Continent, Latitude, Longitude)
-                            VALUES (@IP, @City, @Country, @Continent, @Latitude, @Longitude)";
             Parallel.ForEach(detailsToInsert, x =>
             {
-                connection.ExecuteAsync(sql, x.ToDetailsDTO(), transaction);
+                _ipDetailsRepository.InsertDetail(x.ToDetailsDTO(), connection, transaction);
                 UpdateCache(x.IP, x);
             });
         }
 
-        private async Task UpdateBatchRecord(Guid batchId, int processedRecords, DateTime? endDate, IDbConnection connection, IDbTransaction transaction)
+        private async Task UpdateBatchRecord(Guid batchId, int processedRecords, DateTime? endDate, 
+            IDbConnection connection, IDbTransaction transaction)
         {
             //var batchDetail = await _batchDetailsRepository.GetById(batchId);
             //batchDetail.No_of_Updates_Processed = processedRecords;
@@ -216,11 +198,7 @@ namespace WebAPI.Services
 
             await Task.Delay(15000);
 
-            string sql = @"UPDATE BatchDetails 
-                            SET No_of_Updates_Processed = @No_of_Updates_Processed, EndTime = @EndTime
-                            WHERE ID = @ID";
-            await connection.ExecuteAsync(sql,
-                new { No_of_Updates_Processed = processedRecords, EndTime = endDate, ID = batchId }, transaction);
+            await _batchDetailsRepository.UpdateDetail(processedRecords, endDate, batchId, connection, transaction);
         }
 
         private void UpdateCache(string ip, IPDetails details)
