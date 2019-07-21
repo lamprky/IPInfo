@@ -24,10 +24,10 @@ namespace WebAPI.Services
 {
     public class IPDetailsUpdateBatchService : IIPDetailsUpdateBatchService
     {
-        private int cacheExpirationMins = int.Parse(ConfigurationManager.AppSettings.Get("cacheExpirationMins"));
-        private int batchRecords = int.Parse(ConfigurationManager.AppSettings.Get("batchRecords"));
-        private string strConnString = "data source=SANDY\\SQLEXPRESS; Initial Catalog=IPInfo;Integrated Security=True;MultipleActiveResultSets=True";
-
+        private readonly int cacheExpirationMins = Startup.CacheExpirationMins;
+        private readonly int batchRecords = Startup.BatchRecords;
+        private readonly string strConnString = Startup.ConnectionString;
+            
         private IMemoryCache _cache;
         private readonly IUnitOfWork _uow;
         private readonly IBatchDetailsRepository _batchDetailsRepository;

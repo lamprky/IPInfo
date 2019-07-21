@@ -5,7 +5,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Content Remove="Configuration\App.config" />
+    <Content Remove="App.config" />
   </ItemGroup>
 
   <ItemGroup>
@@ -13,7 +13,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Include="Configuration\App.config" />
+    <None Include="App.config" />
   </ItemGroup>
 
   <ItemGroup>

@@ -27,13 +27,17 @@ namespace WebAPI
         }
 
         public IConfiguration Configuration { get; }
+        public static string ConnectionString { get; private set; }
+        public static int CacheExpirationMins { get; private set; }
+        public static int BatchRecords { get; private set; }
 
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
+            GetLocalSetting();
+
             services.AddDbContext<ApplicationDbContext>(options =>
-               options.UseSqlServer(Configuration.GetConnectionString("DefaultConnection"),
-               b => b.MigrationsAssembly("WebAPI")));
+               options.UseSqlServer(ConnectionString, b => b.MigrationsAssembly("WebAPI")));
 
             services.AddMemoryCache();
             services.AddMvc().SetCompatibilityVersion(CompatibilityVersion.Version_2_1);
@@ -43,6 +47,20 @@ namespace WebAPI
             RegisterRepositories(services);
 
         }
+
+        private void GetLocalSetting()
+        {
+            ConnectionString = Configuration.GetConnectionString("DefaultConnection");
+
+            var localSetting = Configuration.GetSection("ApplicationSettings");
+            CacheExpirationMins = int.Parse(localSetting.GetSection("CacheExpirationMins").Value);
+            BatchRecords = int.Parse(localSetting.GetSection("BatchRecords").Value);
+        }
+
+        //public static string GetDefaultConnectionString()
+        //{
+        //    return Startup.ConnectionString;
+        //}
 
         private static void RegisterServices(IServiceCollection services)
         {

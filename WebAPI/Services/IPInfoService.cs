@@ -19,7 +19,7 @@ namespace WebAPI.Services
 {
     public class IPInfoService : IIPInfoService
     {
-        private int cacheExpirationMins = int.Parse(ConfigurationManager.AppSettings.Get("cacheExpirationMins"));
+        private int cacheExpirationMins = Startup.CacheExpirationMins;
 
         private IMemoryCache _cache;
         private readonly IUnitOfWork _uow;
