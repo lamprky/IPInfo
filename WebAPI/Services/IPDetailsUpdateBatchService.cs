@@ -107,10 +107,10 @@ namespace WebAPI.Services
 
                     try
                     {
+                        //await Task.Delay(20000);
+
                         await ProcessRecords(batchId, details, maxLoops, loopsCounter, connection, transaction);
-
                         transaction.Commit();
-
                         loopsCounter++;
                     }
                     catch (Exception ex)
@@ -152,8 +152,6 @@ namespace WebAPI.Services
         private List<string> GetExistingIPDetailRecords(List<IPDetailsModel> detailsInProcess, 
             IDbConnection connection, IDbTransaction transaction)
         {
-            //var detailsInDb = await _ipDetailsRepository.Get(x => detailsInProcess.Select(y => y.IP).Contains(x.IP));
-
             List<string> detailsInDb = _ipDetailsRepository.GetByIps(detailsInProcess.Select(x => x.IP).ToList(), connection, transaction).Select(x => x.IP).ToList();
             return detailsInDb;
         }
@@ -162,42 +160,27 @@ namespace WebAPI.Services
             IDbConnection connection, IDbTransaction transaction)
         {
             var detailsToUpdate = detailsInProcess.Where(x => detailsInDb.Contains(x.IP)).ToList();
-            //Parallel.ForEach(detailsToUpdate, x => _ipDetailsRepository.Update(x.ToDetailsDTO()));
 
-            await Task.Delay(5000);
-
-            Parallel.ForEach(detailsToUpdate, x =>
-            {
-                _ipDetailsRepository.UpdateDetail(x.ToDetailsDTO(), connection, transaction);
+            Task.WaitAll(detailsToUpdate.Select(async x =>  {
+                await _ipDetailsRepository.UpdateDetail(x.ToDetailsDTO(), connection, transaction);
                 UpdateCache(x.IP, x);
-            });
+            }).ToArray());
         }
 
         private async Task InsertNotExistingIPDetailRecords(List<IPDetailsModel> detailsInProcess, List<string> detailsInDb, 
             IDbConnection connection, IDbTransaction transaction)
         {
             var detailsToInsert = detailsInProcess.Where(x => !detailsInDb.Contains(x.IP)).ToList();
-            //Parallel.ForEach(detailsToInsert, x => _ipDetailsRepository.Insert(x.ToDetailsDTO()));
 
-            await Task.Delay(10000);
-
-            Parallel.ForEach(detailsToInsert, x =>
-            {
-                _ipDetailsRepository.InsertDetail(x.ToDetailsDTO(), connection, transaction);
+            Task.WaitAll(detailsToInsert.Select(async x => {
+                await _ipDetailsRepository.InsertDetail(x.ToDetailsDTO(), connection, transaction);
                 UpdateCache(x.IP, x);
-            });
+            }).ToArray());
         }
 
         private async Task UpdateBatchRecord(Guid batchId, int processedRecords, DateTime? endDate, 
             IDbConnection connection, IDbTransaction transaction)
         {
-            //var batchDetail = await _batchDetailsRepository.GetById(batchId);
-            //batchDetail.No_of_Updates_Processed = processedRecords;
-            //batchDetail.EndTime = endDate;
-            //_batchDetailsRepository.Update(batchDetail);
-
-            await Task.Delay(15000);
-
             await _batchDetailsRepository.UpdateDetail(processedRecords, endDate, batchId, connection, transaction);
         }
 

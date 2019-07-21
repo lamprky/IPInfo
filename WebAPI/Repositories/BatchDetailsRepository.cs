@@ -19,13 +19,13 @@ namespace WebAPI.Repositories
             _dbContext = dbContext;
         }
 
-        private readonly string update_sql = 
+        private readonly string SQL_UpdateById = 
             @"UPDATE BatchDetails 
                 SET No_of_Updates_Processed = @No_of_Updates_Processed, EndTime = @EndTime
                 WHERE ID = @ID";
         public async Task UpdateDetail(int processedRecords, DateTime? endDate, Guid batchId, IDbConnection connection, IDbTransaction transaction)
         { 
-            await connection.ExecuteAsync(update_sql,
+            await connection.ExecuteAsync(SQL_UpdateById,
                 new { No_of_Updates_Processed = processedRecords, EndTime = endDate, ID = batchId }, transaction);
         }
     }

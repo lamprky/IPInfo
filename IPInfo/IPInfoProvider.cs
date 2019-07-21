@@ -40,16 +40,16 @@ namespace IPInfo
 
         private async Task<IRestResponse> GetDetailsFromIpStack(string ip)
         {
-            string url = ConfigurationManager.AppSettings.Get("Url");
-            string access_key = ConfigurationManager.AppSettings.Get("AccessKey");
-            string response_language = ConfigurationManager.AppSettings.Get("ResponseLanguage"); ;
+            string Url = ConfigurationManager.AppSettings.Get("Url");
+            string AccessKey = ConfigurationManager.AppSettings.Get("AccessKey");
+            string ResponseLanguage = ConfigurationManager.AppSettings.Get("ResponseLanguage"); ;
 
-            var client = new RestClient(url);
+            var client = new RestClient(Url);
             var request = new RestRequest(ip, Method.GET);
-            request.AddParameter("access_key", access_key);
+            request.AddParameter("access_key", AccessKey);
             request.AddParameter("output", "json");
             request.AddParameter("fields", GetRequestFields());
-            request.AddParameter("language", response_language);
+            request.AddParameter("language", ResponseLanguage);
 
             var cancellationTokenSource = new CancellationTokenSource();
             var response = await client.ExecuteTaskAsync(request, cancellationTokenSource.Token); ;

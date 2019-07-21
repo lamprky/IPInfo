@@ -12,8 +12,8 @@ namespace WebAPI.Repositories.Interfaces
         Task<List<TEntity>> Get(Expression<Func<TEntity, bool>> filter = null, string includeProperties = "");
         Task<TEntity> GetById(object id);
         Task<EntityEntry<TEntity>> Insert(TEntity obj);
-        Task Update(TEntity obj);
-        Task Delete(object id);
-        Task Delete(TEntity obj);
+        void Update(TEntity obj);
+        void Delete(object id);
+        void Delete(TEntity obj);
     }
 }

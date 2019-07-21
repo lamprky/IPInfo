@@ -12,8 +12,8 @@ namespace WebAPI.Repositories.Interfaces
     {
         List<IPDetailsDTO> GetByIps(List<string> detailsInProcess, IDbConnection connection, IDbTransaction transaction);
 
-        void UpdateDetail(IPDetailsDTO detail, IDbConnection connection, IDbTransaction transaction);
-        void InsertDetail(IPDetailsDTO detail, IDbConnection connection, IDbTransaction transaction);
+        Task UpdateDetail(IPDetailsDTO detail, IDbConnection connection, IDbTransaction transaction);
+        Task InsertDetail(IPDetailsDTO detail, IDbConnection connection, IDbTransaction transaction);
 
     }
 }

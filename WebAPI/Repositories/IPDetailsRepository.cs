@@ -18,13 +18,13 @@ namespace WebAPI.Repositories
             _dbContext = dbContext;
         }
 
-        private readonly string select_sql = "SELECT * FROM IPDetails WHERE IP IN @ips";
+        private readonly string SQL_SelectByIps = "SELECT * FROM IPDetails WHERE IP IN @ips";
 
-        private readonly string insert_sql = 
+        private readonly string SQL_Insert = 
             @"INSERT INTO IPDetails (IP, City, Country, Continent, Latitude, Longitude)
                 VALUES (@IP, @City, @Country, @Continent, @Latitude, @Longitude)";
 
-        private readonly string update_sql =
+        private readonly string SQL_UpdateByIp =
             @"UPDATE IPDetails 
                 SET City = @City, Continent = @Continent, Country = @Country,
                     Latitude = @Latitude, Longitude = @Longitude
@@ -32,18 +32,18 @@ namespace WebAPI.Repositories
 
         public List<IPDetailsDTO> GetByIps(List<string> detailsInProcess, IDbConnection connection, IDbTransaction transaction)
         {
-            List<IPDetailsDTO> detailsInDb = connection.Query<IPDetailsDTO>(select_sql, new { ips = detailsInProcess.ToArray() }, transaction).ToList();
+            List<IPDetailsDTO> detailsInDb = connection.Query<IPDetailsDTO>(SQL_SelectByIps, new { ips = detailsInProcess.ToArray() }, transaction).ToList();
             return detailsInDb;
         }
 
-        public void UpdateDetail(IPDetailsDTO detail, IDbConnection connection, IDbTransaction transaction)
+        public async Task UpdateDetail(IPDetailsDTO detail, IDbConnection connection, IDbTransaction transaction)
         {
-            connection.ExecuteAsync(update_sql, detail, transaction);
+            await connection.ExecuteAsync(SQL_UpdateByIp, detail, transaction);
         }
 
-        public void InsertDetail(IPDetailsDTO detail, IDbConnection connection, IDbTransaction transaction)
+        public async Task InsertDetail(IPDetailsDTO detail, IDbConnection connection, IDbTransaction transaction)
         {
-            connection.ExecuteAsync(insert_sql, detail, transaction);
+            await connection.ExecuteAsync(SQL_Insert, detail, transaction);
         }
     }
 }

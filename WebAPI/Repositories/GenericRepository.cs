@@ -45,18 +45,18 @@ namespace WebAPI.Repositories
             return await dbSet.AddAsync(entity);
         }
 
-        public async Task Update(TEntity entityToUpdate)
+        public void Update(TEntity entityToUpdate)
         {
             dbSet.Update(entityToUpdate);
         }
 
-        public async Task Delete(object id)
+        public void Delete(object id)
         {
             TEntity entityToDelete = dbSet.Find(id);
-            await Delete(entityToDelete);
+            Delete(entityToDelete);
         }
 
-        public async Task Delete(TEntity entityToDelete)
+        public void Delete(TEntity entityToDelete)
         {
             dbSet.Remove(entityToDelete);
         }
