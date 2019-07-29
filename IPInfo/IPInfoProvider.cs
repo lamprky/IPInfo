@@ -52,7 +52,9 @@ namespace IPInfo
             request.AddParameter("language", ResponseLanguage);
 
             var cancellationTokenSource = new CancellationTokenSource();
-            var response = await client.ExecuteTaskAsync(request, cancellationTokenSource.Token); ;
+
+            // cancellationTokenSource.CancelAfter(2500);
+            var response = await client.ExecuteTaskAsync(request, cancellationTokenSource.Token);
 
             return response;
         }

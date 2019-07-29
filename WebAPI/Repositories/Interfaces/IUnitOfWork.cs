@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 
 namespace WebAPI.Repositories.Interfaces
 {
-    public interface IUnitOfWork : IDisposable
+    public interface IUnitOfWork : IDisposable //Provides a mechanism for releasing unmanaged resources.
     {
         Task<int> Save();
         Task BeginTransaction();

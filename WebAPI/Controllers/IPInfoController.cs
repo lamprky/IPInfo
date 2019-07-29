@@ -23,7 +23,6 @@ namespace WebAPI.Controllers
         {
             _ipInfoService = ipInfoService;
             _ipDetailsUpdateService = ipDetailsUpdateService;
-
         }
 
         // GET api/ipinfo/2.86.114.25
@@ -33,6 +32,7 @@ namespace WebAPI.Controllers
             return await _ipInfoService.GetIPDetails(ip);
         }
 
+        //POST api/ipinfo/UpdateIPDetails
         [HttpPost("[action]")]
         public async Task<Guid> UpdateIPDetails([FromBody] List<IPDetailsModel> details)
         {
